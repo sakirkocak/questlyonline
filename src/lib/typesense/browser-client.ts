@@ -63,7 +63,7 @@ export interface QuestionDocument {
   created_at: number
 }
 
-// Search questions (English preferred, fallback to all)
+// Search questions (English only for Questly Global)
 export async function searchQuestions(
   query: string,
   filters?: {
@@ -71,15 +71,16 @@ export async function searchQuestions(
     subject_code?: string
     difficulty?: string
     limit?: number
-    langFilter?: boolean  // true = only English, false/undefined = all
+    langFilter?: boolean  // false = skip lang filter (default: true for English only)
   }
 ): Promise<{ questions: QuestionDocument[]; total: number; duration: number }> {
   const startTime = performance.now()
   const client = getTypesenseBrowserClient()
   
-  // Build filter - optionally filter by lang
+  // Build filter - ALWAYS filter by lang=en unless explicitly disabled
   const filterParts: string[] = []
-  if (filters?.langFilter) filterParts.push('lang:=en')
+  // Default to English only (Questly is English-only platform)
+  if (filters?.langFilter !== false) filterParts.push('lang:=en')
   if (filters?.grade) filterParts.push(`grade:=${filters.grade}`)
   if (filters?.subject_code) filterParts.push(`subject_code:=${filters.subject_code}`)
   if (filters?.difficulty) filterParts.push(`difficulty:=${filters.difficulty}`)

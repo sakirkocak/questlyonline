@@ -5,18 +5,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { 
   Search, 
-  Filter, 
   BookOpen, 
   ChevronRight, 
   ArrowLeft,
   Sparkles,
-  Trophy,
-  Zap,
   CheckCircle,
   XCircle,
-  Clock,
+  Flame,
+  Zap,
   Target,
-  Flame
+  Trophy,
+  Clock
 } from 'lucide-react'
 import MathRenderer from '@/components/MathRenderer'
 import { searchQuestions, QuestionDocument, isTypesenseEnabled } from '@/lib/typesense/browser-client'
@@ -33,22 +32,22 @@ const grades = [
   { value: 12, label: 'Grade 12', age: '17-18' },
 ]
 
-// Subjects
+// Subjects (English names and codes matching global subjects)
 const subjects = [
-  { code: 'matematik', name: 'Mathematics', icon: '📐' },
-  { code: 'fizik', name: 'Physics', icon: '⚡' },
-  { code: 'kimya', name: 'Chemistry', icon: '🧪' },
-  { code: 'biyoloji', name: 'Biology', icon: '🧬' },
-  { code: 'fen_bilimleri', name: 'Science', icon: '🔬' },
-  { code: 'cografya', name: 'Geography', icon: '🌍' },
+  { code: 'matematik', name: 'Mathematics', icon: '📐', color: 'from-blue-500 to-blue-600' },
+  { code: 'fizik', name: 'Physics', icon: '⚡', color: 'from-amber-500 to-orange-500' },
+  { code: 'kimya', name: 'Chemistry', icon: '🧪', color: 'from-green-500 to-emerald-500' },
+  { code: 'biyoloji', name: 'Biology', icon: '🧬', color: 'from-pink-500 to-rose-500' },
+  { code: 'fen_bilimleri', name: 'Science', icon: '🔬', color: 'from-purple-500 to-violet-500' },
+  { code: 'cografya', name: 'Geography', icon: '🌍', color: 'from-teal-500 to-cyan-500' },
 ]
 
 // Difficulty levels
 const difficulties = [
-  { value: 'easy', label: 'Easy', color: 'text-green-400', bg: 'bg-green-500/20' },
-  { value: 'medium', label: 'Medium', color: 'text-yellow-400', bg: 'bg-yellow-500/20' },
-  { value: 'hard', label: 'Hard', color: 'text-orange-400', bg: 'bg-orange-500/20' },
-  { value: 'legendary', label: 'Legendary', color: 'text-red-400', bg: 'bg-red-500/20' },
+  { value: 'easy', label: 'Easy', color: 'text-[#58CC02]', bg: 'bg-[#58CC02]/20', borderColor: 'border-[#58CC02]' },
+  { value: 'medium', label: 'Medium', color: 'text-[#1CB0F6]', bg: 'bg-[#1CB0F6]/20', borderColor: 'border-[#1CB0F6]' },
+  { value: 'hard', label: 'Hard', color: 'text-[#FF9600]', bg: 'bg-[#FF9600]/20', borderColor: 'border-[#FF9600]' },
+  { value: 'legendary', label: 'Legendary', color: 'text-[#FF4B4B]', bg: 'bg-[#FF4B4B]/20', borderColor: 'border-[#FF4B4B]' },
 ]
 
 export default function QuestionsPage() {
@@ -61,7 +60,7 @@ export default function QuestionsPage() {
   const [activeQuestion, setActiveQuestion] = useState<QuestionDocument | null>(null)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const [showResult, setShowResult] = useState(false)
-  const [stats, setStats] = useState({ correct: 0, total: 0 })
+  const [stats, setStats] = useState({ correct: 0, total: 0, xp: 0, streak: 0 })
 
   // Search questions
   const handleSearch = async () => {
@@ -77,6 +76,7 @@ export default function QuestionsPage() {
         subject_code: selectedSubject || undefined,
         difficulty: selectedDifficulty || undefined,
         limit: 20,
+        // langFilter is true by default - only shows English questions
       })
       setQuestions(result.questions)
     } catch (error) {
@@ -102,9 +102,13 @@ export default function QuestionsPage() {
     setShowResult(true)
     
     const isCorrect = selectedAnswer === activeQuestion.correct_answer
+    const xpGain = isCorrect ? (activeQuestion.difficulty === 'hard' ? 15 : activeQuestion.difficulty === 'medium' ? 10 : 5) : 0
+    
     setStats(prev => ({
       correct: prev.correct + (isCorrect ? 1 : 0),
-      total: prev.total + 1
+      total: prev.total + 1,
+      xp: prev.xp + xpGain,
+      streak: isCorrect ? prev.streak + 1 : 0
     }))
   }
 
@@ -133,30 +137,40 @@ export default function QuestionsPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#131F24]">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 glass">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1e2d36]/95 backdrop-blur-md border-b border-[#2a3f4d]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#58CC02] to-[#4CAF00] flex items-center justify-center shadow-lg shadow-[#58CC02]/30">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold">Questly</span>
+              <span className="text-xl font-bold text-white">Questly</span>
             </Link>
             
-            {/* Stats */}
-            {stats.total > 0 && (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span>{stats.correct} / {stats.total}</span>
+            {/* Stats Bar */}
+            <div className="flex items-center gap-4">
+              {stats.streak > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF9600]/20 border border-[#FF9600]/30">
+                  <Flame className="w-5 h-5 text-[#FF9600]" />
+                  <span className="font-bold text-[#FF9600]">{stats.streak}</span>
                 </div>
-                <div className="text-sm text-gray-400">
-                  {Math.round((stats.correct / stats.total) * 100)}%
+              )}
+              {stats.xp > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFD700]/20 border border-[#FFD700]/30">
+                  <Zap className="w-5 h-5 text-[#FFD700]" />
+                  <span className="font-bold text-[#FFD700]">{stats.xp}</span>
                 </div>
-              </div>
-            )}
+              )}
+              {stats.total > 0 && (
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <CheckCircle className="w-4 h-4 text-[#58CC02]" />
+                  <span>{stats.correct}/{stats.total}</span>
+                  <span className="text-[#58CC02]">({Math.round((stats.correct / stats.total) * 100)}%)</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -164,255 +178,314 @@ export default function QuestionsPage() {
       <div className="pt-20 pb-12 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Question Mode */}
-          {activeQuestion ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-3xl mx-auto"
-            >
-              {/* Back Button */}
-              <button
-                onClick={() => setActiveQuestion(null)}
-                className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+          <AnimatePresence mode="wait">
+            {activeQuestion ? (
+              <motion.div
+                key="question"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="max-w-3xl mx-auto"
               >
-                <ArrowLeft className="w-4 h-4" /> Back to Questions
-              </button>
-              
-              {/* Question Card */}
-              <div className="card">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{subjects.find(s => s.code === activeQuestion.subject_code)?.icon || '📚'}</span>
-                    <div>
-                      <h2 className="font-semibold">{activeQuestion.main_topic}</h2>
-                      <p className="text-sm text-gray-400">{activeQuestion.sub_topic}</p>
+                {/* Back Button */}
+                <button
+                  onClick={() => setActiveQuestion(null)}
+                  className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back to Questions
+                </button>
+                
+                {/* Question Card */}
+                <div className="bg-[#1e2d36] rounded-3xl border-2 border-[#2a3f4d] p-8 shadow-xl">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${subjects.find(s => s.code === activeQuestion.subject_code)?.color || 'from-gray-500 to-gray-600'} flex items-center justify-center text-2xl`}>
+                        {subjects.find(s => s.code === activeQuestion.subject_code)?.icon || '📚'}
+                      </div>
+                      <div>
+                        <h2 className="font-bold text-white">{activeQuestion.main_topic}</h2>
+                        <p className="text-sm text-gray-400">{activeQuestion.sub_topic || `Grade ${activeQuestion.grade}`}</p>
+                      </div>
                     </div>
+                    <span className={`px-4 py-1.5 rounded-full text-sm font-bold ${
+                      difficulties.find(d => d.value === activeQuestion.difficulty)?.bg
+                    } ${
+                      difficulties.find(d => d.value === activeQuestion.difficulty)?.color
+                    }`}>
+                      {difficulties.find(d => d.value === activeQuestion.difficulty)?.label}
+                    </span>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm ${
-                    difficulties.find(d => d.value === activeQuestion.difficulty)?.bg
-                  } ${
-                    difficulties.find(d => d.value === activeQuestion.difficulty)?.color
-                  }`}>
-                    {difficulties.find(d => d.value === activeQuestion.difficulty)?.label}
-                  </span>
-                </div>
-                
-                {/* Question Text */}
-                <div className="text-lg mb-8">
-                  <MathRenderer content={activeQuestion.question_text} />
-                </div>
-                
-                {/* Options */}
-                <div className="space-y-3 mb-8">
-                  {getOptions(activeQuestion).map((option) => (
+                  
+                  {/* Question Text */}
+                  <div className="text-lg text-white mb-8 leading-relaxed">
+                    <MathRenderer content={activeQuestion.question_text} />
+                  </div>
+                  
+                  {/* Options */}
+                  <div className="space-y-3 mb-8">
+                    {getOptions(activeQuestion).map((option) => {
+                      const isCorrect = option.key === activeQuestion.correct_answer
+                      const isSelected = selectedAnswer === option.key
+                      const isWrong = showResult && isSelected && !isCorrect
+                      
+                      return (
+                        <button
+                          key={option.key}
+                          onClick={() => handleAnswerSelect(option.key)}
+                          disabled={showResult}
+                          className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-start gap-4 ${
+                            showResult
+                              ? isCorrect
+                                ? 'border-[#58CC02] bg-[#58CC02]/10'
+                                : isWrong
+                                ? 'border-[#FF4B4B] bg-[#FF4B4B]/10'
+                                : 'border-[#2a3f4d] opacity-50'
+                              : isSelected
+                              ? 'border-[#1CB0F6] bg-[#1CB0F6]/10'
+                              : 'border-[#2a3f4d] hover:border-[#58CC02]/50 hover:bg-[#2a3f4d]/50'
+                          }`}
+                        >
+                          <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${
+                            showResult
+                              ? isCorrect
+                                ? 'bg-[#58CC02] text-white'
+                                : isWrong
+                                ? 'bg-[#FF4B4B] text-white'
+                                : 'bg-[#2a3f4d] text-gray-400'
+                              : isSelected
+                              ? 'bg-[#1CB0F6] text-white'
+                              : 'bg-[#2a3f4d] text-gray-300'
+                          }`}>
+                            {option.key}
+                          </span>
+                          <span className="flex-1 text-white">
+                            <MathRenderer content={option.value} />
+                          </span>
+                          {showResult && isCorrect && (
+                            <CheckCircle className="w-6 h-6 text-[#58CC02] shrink-0" />
+                          )}
+                          {showResult && isWrong && (
+                            <XCircle className="w-6 h-6 text-[#FF4B4B] shrink-0" />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  
+                  {/* Result / Actions */}
+                  {showResult ? (
+                    <div className="space-y-4">
+                      {/* XP Gained */}
+                      {selectedAnswer === activeQuestion.correct_answer && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="flex items-center justify-center gap-2 text-[#FFD700] font-bold text-lg"
+                        >
+                          <Zap className="w-6 h-6" />
+                          +{activeQuestion.difficulty === 'hard' ? 15 : activeQuestion.difficulty === 'medium' ? 10 : 5} XP
+                        </motion.div>
+                      )}
+                      
+                      {/* Explanation */}
+                      {activeQuestion.explanation && (
+                        <div className="p-4 rounded-2xl bg-[#131F24] border border-[#2a3f4d]">
+                          <h4 className="font-bold text-white mb-2 flex items-center gap-2">
+                            <BookOpen className="w-5 h-5 text-[#1CB0F6]" /> Explanation
+                          </h4>
+                          <div className="text-gray-300">
+                            <MathRenderer content={activeQuestion.explanation} />
+                          </div>
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={handleNextQuestion}
+                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#58CC02] to-[#4CAF00] text-white font-bold text-lg flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-[#58CC02]/30 transition-all"
+                      >
+                        Next Question <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ) : (
                     <button
-                      key={option.key}
-                      onClick={() => handleAnswerSelect(option.key)}
-                      disabled={showResult}
-                      className={`w-full p-4 rounded-xl border text-left transition-all flex items-start gap-3 ${
-                        showResult
-                          ? option.key === activeQuestion.correct_answer
-                            ? 'border-green-500 bg-green-500/10'
-                            : option.key === selectedAnswer
-                            ? 'border-red-500 bg-red-500/10'
-                            : 'border-[var(--border-default)] opacity-50'
-                          : selectedAnswer === option.key
-                          ? 'border-primary-500 bg-primary-500/10'
-                          : 'border-[var(--border-default)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]'
+                      onClick={handleCheckAnswer}
+                      disabled={!selectedAnswer}
+                      className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${
+                        selectedAnswer 
+                          ? 'bg-gradient-to-r from-[#58CC02] to-[#4CAF00] text-white hover:shadow-lg hover:shadow-[#58CC02]/30' 
+                          : 'bg-[#2a3f4d] text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm ${
-                        showResult
-                          ? option.key === activeQuestion.correct_answer
-                            ? 'bg-green-500 text-white'
-                            : option.key === selectedAnswer
-                            ? 'bg-red-500 text-white'
-                            : 'bg-[var(--bg-tertiary)]'
-                          : selectedAnswer === option.key
-                          ? 'bg-primary-500 text-white'
-                          : 'bg-[var(--bg-tertiary)]'
-                      }`}>
-                        {option.key}
-                      </span>
-                      <span className="flex-1">
-                        <MathRenderer content={option.value} />
-                      </span>
-                      {showResult && option.key === activeQuestion.correct_answer && (
-                        <CheckCircle className="w-5 h-5 text-green-400" />
-                      )}
-                      {showResult && option.key === selectedAnswer && option.key !== activeQuestion.correct_answer && (
-                        <XCircle className="w-5 h-5 text-red-400" />
-                      )}
+                      Check Answer
                     </button>
-                  ))}
+                  )}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                {/* Header */}
+                <div className="text-center mb-8">
+                  <h1 className="text-4xl font-extrabold text-white mb-3">Practice Questions</h1>
+                  <p className="text-gray-400">Master any subject with AI-powered questions</p>
                 </div>
                 
-                {/* Result / Actions */}
-                {showResult ? (
-                  <div className="space-y-4">
-                    {/* Explanation */}
-                    {activeQuestion.explanation && (
-                      <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]">
-                        <h4 className="font-semibold mb-2 flex items-center gap-2">
-                          <BookOpen className="w-4 h-4" /> Explanation
-                        </h4>
-                        <MathRenderer content={activeQuestion.explanation} className="text-gray-300" />
-                      </div>
-                    )}
-                    
-                    <button
-                      onClick={handleNextQuestion}
-                      className="btn-primary w-full flex items-center justify-center gap-2"
+                {/* Filters */}
+                <div className="mb-8 space-y-4">
+                  {/* Search */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search questions by topic..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[#1e2d36] border-2 border-[#2a3f4d] text-white placeholder-gray-500 focus:border-[#58CC02] focus:outline-none transition-colors"
+                      />
+                    </div>
+                    <button 
+                      onClick={handleSearch} 
+                      className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#58CC02] to-[#4CAF00] text-white font-bold hover:shadow-lg hover:shadow-[#58CC02]/30 transition-all"
                     >
-                      Next Question <ChevronRight className="w-5 h-5" />
+                      Search
                     </button>
+                  </div>
+                  
+                  {/* Filter Pills */}
+                  <div className="flex flex-wrap gap-4">
+                    {/* Subject Filter */}
+                    <div className="flex flex-wrap gap-2">
+                      {subjects.map((subject) => (
+                        <button
+                          key={subject.code}
+                          onClick={() => setSelectedSubject(selectedSubject === subject.code ? null : subject.code)}
+                          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
+                            selectedSubject === subject.code
+                              ? 'bg-[#58CC02] text-white shadow-lg shadow-[#58CC02]/30'
+                              : 'bg-[#1e2d36] border border-[#2a3f4d] text-gray-300 hover:border-[#58CC02]'
+                          }`}
+                        >
+                          <span>{subject.icon}</span> {subject.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Grade and Difficulty */}
+                  <div className="flex flex-wrap gap-4">
+                    {/* Grade Filter */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="text-sm text-gray-400 font-medium">Grade:</span>
+                      {grades.map((grade) => (
+                        <button
+                          key={grade.value}
+                          onClick={() => setSelectedGrade(selectedGrade === grade.value ? null : grade.value)}
+                          className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+                            selectedGrade === grade.value
+                              ? 'bg-[#1CB0F6] text-white'
+                              : 'bg-[#1e2d36] border border-[#2a3f4d] text-gray-300 hover:border-[#1CB0F6]'
+                          }`}
+                        >
+                          {grade.value}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {/* Difficulty Filter */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="text-sm text-gray-400 font-medium">Difficulty:</span>
+                      {difficulties.map((diff) => (
+                        <button
+                          key={diff.value}
+                          onClick={() => setSelectedDifficulty(selectedDifficulty === diff.value ? null : diff.value)}
+                          className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+                            selectedDifficulty === diff.value
+                              ? `${diff.bg} ${diff.color} border ${diff.borderColor}`
+                              : 'bg-[#1e2d36] border border-[#2a3f4d] text-gray-300 hover:border-[#2a3f4d]'
+                          }`}
+                        >
+                          {diff.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Questions List */}
+                {loading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="w-10 h-10 border-4 border-[#58CC02] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : questions.length === 0 ? (
+                  <div className="text-center py-20">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-[#1e2d36] border-2 border-[#2a3f4d] flex items-center justify-center"
+                    >
+                      <Target className="w-12 h-12 text-gray-600" />
+                    </motion.div>
+                    <h3 className="text-2xl font-bold text-white mb-3">Coming Soon!</h3>
+                    <p className="text-gray-400 max-w-md mx-auto mb-6">
+                      English questions are being generated. Check back soon to start practicing!
+                    </p>
+                    <Link 
+                      href="/"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#58CC02] text-white font-bold hover:bg-[#4CAF00] transition-colors"
+                    >
+                      <ArrowLeft className="w-5 h-5" /> Back to Home
+                    </Link>
                   </div>
                 ) : (
-                  <button
-                    onClick={handleCheckAnswer}
-                    disabled={!selectedAnswer}
-                    className={`btn-primary w-full ${!selectedAnswer ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    Check Answer
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          ) : (
-            <>
-              {/* Filters */}
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-6">Practice Questions</h1>
-                
-                {/* Search */}
-                <div className="flex gap-4 mb-6">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search questions..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      className="input pl-12"
-                    />
-                  </div>
-                  <button onClick={handleSearch} className="btn-primary">
-                    Search
-                  </button>
-                </div>
-                
-                {/* Filter Chips */}
-                <div className="flex flex-wrap gap-4">
-                  {/* Grade Filter */}
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-sm text-gray-400 py-2">Grade:</span>
-                    {grades.map((grade) => (
-                      <button
-                        key={grade.value}
-                        onClick={() => setSelectedGrade(selectedGrade === grade.value ? null : grade.value)}
-                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                          selectedGrade === grade.value
-                            ? 'bg-primary-500 text-white'
-                            : 'bg-[var(--bg-tertiary)] text-gray-300 hover:bg-[var(--bg-hover)]'
-                        }`}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {questions.map((question, index) => (
+                      <motion.div
+                        key={question.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        onClick={() => setActiveQuestion(question)}
+                        className="bg-[#1e2d36] rounded-2xl border-2 border-[#2a3f4d] p-5 cursor-pointer hover:border-[#58CC02] hover:shadow-lg hover:shadow-[#58CC02]/10 transition-all group"
                       >
-                        {grade.label}
-                      </button>
-                    ))}
-                  </div>
-                  
-                  {/* Subject Filter */}
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-sm text-gray-400 py-2">Subject:</span>
-                    {subjects.map((subject) => (
-                      <button
-                        key={subject.code}
-                        onClick={() => setSelectedSubject(selectedSubject === subject.code ? null : subject.code)}
-                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1 ${
-                          selectedSubject === subject.code
-                            ? 'bg-primary-500 text-white'
-                            : 'bg-[var(--bg-tertiary)] text-gray-300 hover:bg-[var(--bg-hover)]'
-                        }`}
-                      >
-                        <span>{subject.icon}</span> {subject.name}
-                      </button>
-                    ))}
-                  </div>
-                  
-                  {/* Difficulty Filter */}
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-sm text-gray-400 py-2">Difficulty:</span>
-                    {difficulties.map((diff) => (
-                      <button
-                        key={diff.value}
-                        onClick={() => setSelectedDifficulty(selectedDifficulty === diff.value ? null : diff.value)}
-                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                          selectedDifficulty === diff.value
-                            ? `${diff.bg} ${diff.color}`
-                            : 'bg-[var(--bg-tertiary)] text-gray-300 hover:bg-[var(--bg-hover)]'
-                        }`}
-                      >
-                        {diff.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Questions List */}
-              {loading ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : questions.length === 0 ? (
-                <div className="text-center py-20">
-                  <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No questions found</h3>
-                  <p className="text-gray-400">Try adjusting your filters or generate English questions from admin panel</p>
-                </div>
-              ) : (
-                <div className="grid md:grid-cols-2 gap-4">
-                  {questions.map((question, index) => (
-                    <motion.div
-                      key={question.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      onClick={() => setActiveQuestion(question)}
-                      className="card cursor-pointer group"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{subjects.find(s => s.code === question.subject_code)?.icon || '📚'}</span>
-                          <span className="text-sm text-gray-400">{question.main_topic}</span>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${subjects.find(s => s.code === question.subject_code)?.color || 'from-gray-500 to-gray-600'} flex items-center justify-center`}>
+                              {subjects.find(s => s.code === question.subject_code)?.icon || '📚'}
+                            </div>
+                            <span className="text-sm text-gray-400 font-medium">{question.main_topic}</span>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                            difficulties.find(d => d.value === question.difficulty)?.bg
+                          } ${
+                            difficulties.find(d => d.value === question.difficulty)?.color
+                          }`}>
+                            {difficulties.find(d => d.value === question.difficulty)?.label}
+                          </span>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-xs ${
-                          difficulties.find(d => d.value === question.difficulty)?.bg
-                        } ${
-                          difficulties.find(d => d.value === question.difficulty)?.color
-                        }`}>
-                          {difficulties.find(d => d.value === question.difficulty)?.label}
-                        </span>
-                      </div>
-                      
-                      <p className="text-gray-200 line-clamp-3 mb-4">
-                        <MathRenderer content={question.question_text.substring(0, 200) + (question.question_text.length > 200 ? '...' : '')} />
-                      </p>
-                      
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>Grade {question.grade}</span>
-                        <span className="flex items-center gap-1 text-primary-400 group-hover:text-primary-300">
-                          Solve <ChevronRight className="w-4 h-4" />
-                        </span>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+                        
+                        <div className="text-white line-clamp-3 mb-4">
+                          <MathRenderer content={question.question_text.substring(0, 150) + (question.question_text.length > 150 ? '...' : '')} />
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">Grade {question.grade}</span>
+                          <span className="flex items-center gap-1 text-[#58CC02] font-semibold group-hover:translate-x-1 transition-transform">
+                            Solve <ChevronRight className="w-4 h-4" />
+                          </span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

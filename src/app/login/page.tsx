@@ -1,34 +1,68 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Sparkles, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Eye, EyeOff, Sparkles, AlertCircle } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { signInWithEmail, signInWithGoogle, user, loading: authLoading } = useAuth()
+  
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const redirectTo = searchParams.get('redirectTo') || '/dashboard'
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push(redirectTo)
+    }
+  }, [user, authLoading, router, redirectTo])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
     
-    // TODO: Implement actual login
-    setTimeout(() => {
-      setError('Login functionality coming soon!')
+    const { error } = await signInWithEmail(email, password)
+    
+    if (error) {
+      setError(error.message === 'Invalid login credentials' 
+        ? 'Invalid email or password. Please try again.' 
+        : error.message)
       setLoading(false)
-    }, 1000)
+    } else {
+      router.push(redirectTo)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true)
+    setError('')
+    await signInWithGoogle()
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#131F24]">
+        <div className="w-12 h-12 border-4 border-[#58CC02] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#131F24] to-[#1a2a32] flex items-center justify-center p-4">
       {/* Background Effects */}
-      <div className="absolute top-20 left-20 w-72 h-72 bg-primary-500/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-accent-500/10 rounded-full blur-3xl" />
+      <div className="absolute top-20 left-20 w-72 h-72 bg-[#58CC02]/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 right-20 w-96 h-96 bg-[#1CB0F6]/10 rounded-full blur-3xl" />
       
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -36,36 +70,41 @@ export default function LoginPage() {
         className="w-full max-w-md relative z-10"
       >
         {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
-            <Sparkles className="w-7 h-7 text-white" />
+        <Link href="/" className="flex items-center justify-center gap-3 mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#58CC02] to-[#4CAF00] flex items-center justify-center shadow-lg shadow-[#58CC02]/30">
+            <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <span className="text-2xl font-bold">Questly</span>
+          <span className="text-3xl font-bold text-white">Questly</span>
         </Link>
 
         {/* Card */}
-        <div className="card">
-          <h1 className="text-2xl font-bold text-center mb-2">Welcome Back</h1>
+        <div className="bg-[#1e2d36] rounded-2xl border border-[#2a3f4d] p-8 shadow-2xl">
+          <h1 className="text-2xl font-bold text-center mb-2 text-white">Welcome Back!</h1>
           <p className="text-gray-400 text-center mb-8">Sign in to continue learning</p>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-              {error}
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-xl bg-[#FF4B4B]/10 border border-[#FF4B4B]/30 flex items-start gap-3"
+            >
+              <AlertCircle className="w-5 h-5 text-[#FF4B4B] flex-shrink-0 mt-0.5" />
+              <span className="text-[#FF4B4B] text-sm">{error}</span>
+            </motion.div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="input pl-11"
+                  className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-[#131F24] border-2 border-[#2a3f4d] text-white placeholder-gray-500 focus:border-[#58CC02] focus:outline-none transition-colors"
                   required
                 />
               </div>
@@ -73,21 +112,21 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="input pl-11 pr-11"
+                  className="w-full pl-12 pr-12 py-3.5 rounded-xl bg-[#131F24] border-2 border-[#2a3f4d] text-white placeholder-gray-500 focus:border-[#58CC02] focus:outline-none transition-colors"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -96,7 +135,7 @@ export default function LoginPage() {
 
             {/* Forgot Password */}
             <div className="text-right">
-              <Link href="/forgot-password" className="text-sm text-primary-400 hover:text-primary-300">
+              <Link href="/forgot-password" className="text-sm text-[#1CB0F6] hover:text-[#58CC02] font-medium transition-colors">
                 Forgot password?
               </Link>
             </div>
@@ -105,10 +144,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-[#58CC02] to-[#4CAF00] text-white font-bold text-lg flex items-center justify-center gap-2 hover:from-[#4CAF00] hover:to-[#3d8f00] transition-all shadow-lg shadow-[#58CC02]/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
                   Sign In <ArrowRight className="w-5 h-5" />
@@ -119,13 +158,17 @@ export default function LoginPage() {
 
           {/* Divider */}
           <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-[var(--border-default)]" />
-            <span className="text-sm text-gray-500">or</span>
-            <div className="flex-1 h-px bg-[var(--border-default)]" />
+            <div className="flex-1 h-px bg-[#2a3f4d]" />
+            <span className="text-sm text-gray-500 font-medium">or</span>
+            <div className="flex-1 h-px bg-[#2a3f4d]" />
           </div>
 
           {/* Google Login */}
-          <button className="btn-secondary w-full flex items-center justify-center gap-2">
+          <button 
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full py-3.5 rounded-xl bg-[#131F24] border-2 border-[#2a3f4d] text-white font-semibold flex items-center justify-center gap-3 hover:border-[#58CC02] hover:bg-[#1a2a32] transition-all disabled:opacity-50"
+          >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -138,7 +181,7 @@ export default function LoginPage() {
           {/* Register Link */}
           <p className="text-center mt-6 text-gray-400">
             Don't have an account?{' '}
-            <Link href="/register" className="text-primary-400 hover:text-primary-300 font-medium">
+            <Link href="/register" className="text-[#58CC02] hover:text-[#4CAF00] font-semibold transition-colors">
               Sign up free
             </Link>
           </p>
