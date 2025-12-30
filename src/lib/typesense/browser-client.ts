@@ -63,7 +63,7 @@ export interface QuestionDocument {
   created_at: number
 }
 
-// Search questions (English only for Questly)
+// Search questions (English preferred, fallback to all)
 export async function searchQuestions(
   query: string,
   filters?: {
@@ -71,30 +71,34 @@ export async function searchQuestions(
     subject_code?: string
     difficulty?: string
     limit?: number
+    langFilter?: boolean  // true = only English, false/undefined = all
   }
 ): Promise<{ questions: QuestionDocument[]; total: number; duration: number }> {
   const startTime = performance.now()
   const client = getTypesenseBrowserClient()
   
-  // Build filter - always include lang:=en for Questly
-  const filterParts: string[] = ['lang:=en']
+  // Build filter - optionally filter by lang
+  const filterParts: string[] = []
+  if (filters?.langFilter) filterParts.push('lang:=en')
   if (filters?.grade) filterParts.push(`grade:=${filters.grade}`)
   if (filters?.subject_code) filterParts.push(`subject_code:=${filters.subject_code}`)
   if (filters?.difficulty) filterParts.push(`difficulty:=${filters.difficulty}`)
   
-  const filterBy = filterParts.join(' && ')
+  const filterBy = filterParts.length > 0 ? filterParts.join(' && ') : undefined
   
   try {
+    const searchParams: any = {
+      q: query || '*',
+      query_by: 'question_text,main_topic,sub_topic,explanation',
+      per_page: filters?.limit || 20,
+      sort_by: 'created_at:desc',
+    }
+    if (filterBy) searchParams.filter_by = filterBy
+    
     const result = await client
       .collections(COLLECTIONS.QUESTIONS)
       .documents()
-      .search({
-        q: query || '*',
-        query_by: 'question_text,main_topic,sub_topic,explanation',
-        filter_by: filterBy,
-        per_page: filters?.limit || 20,
-        sort_by: 'created_at:desc',
-      })
+      .search(searchParams)
     
     const questions = (result.hits || []).map((hit: any) => hit.document as QuestionDocument)
     const duration = Math.round(performance.now() - startTime)
@@ -128,19 +132,17 @@ export async function getGlobalStats(): Promise<{
       client.collections(COLLECTIONS.QUESTIONS).documents().search({
         q: '*',
         query_by: 'question_text',
-        filter_by: 'lang:=en',
-        per_page: 0,
+        per_page: 0,  // Tüm soruları say (lang filter yok)
       }),
       client.collections(COLLECTIONS.LEADERBOARD).documents().search({
         q: '*',
         query_by: 'full_name',
-        filter_by: 'region:=global',
-        per_page: 0,
+        per_page: 0,  // Tüm öğrencileri say
       }),
       client.collections(COLLECTIONS.LEADERBOARD).documents().search({
         q: '*',
         query_by: 'full_name',
-        filter_by: `region:=global && today_date:=${todayUTC}`,
+        filter_by: `today_date:=${todayUTC}`,
         per_page: 250,
         include_fields: 'today_questions',
       }),
@@ -175,24 +177,26 @@ export async function getGlobalLeaderboard(
   const startTime = performance.now()
   const client = getTypesenseBrowserClient()
   
-  // Build filter - always include region:=global for Questly
-  const filterParts: string[] = ['region:=global']
+  // Build filter - optional filters
+  const filterParts: string[] = []
   if (filters?.country_code) filterParts.push(`country_code:=${filters.country_code}`)
   if (filters?.city_global_id) filterParts.push(`city_global_id:=${filters.city_global_id}`)
   
-  const filterBy = filterParts.join(' && ')
+  const filterBy = filterParts.length > 0 ? filterParts.join(' && ') : undefined
   
   try {
+    const searchParams: any = {
+      q: '*',
+      query_by: 'full_name',
+      per_page: filters?.limit || 50,
+      sort_by: 'total_points:desc',
+    }
+    if (filterBy) searchParams.filter_by = filterBy
+    
     const result = await client
       .collections(COLLECTIONS.LEADERBOARD)
       .documents()
-      .search({
-        q: '*',
-        query_by: 'full_name',
-        filter_by: filterBy,
-        per_page: filters?.limit || 50,
-        sort_by: 'total_points:desc',
-      })
+      .search(searchParams)
     
     const leaders = (result.hits || []).map((hit: any) => hit.document)
     const duration = Math.round(performance.now() - startTime)
